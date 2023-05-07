@@ -15,20 +15,21 @@ localparam IDLE = 0,
            MUL2 = 4,
            WAIT_MUL2 = 5,
            CHECK_X = 6,
-           SUB_B = 7;
+           SUB_B = 7,
+           RST_END = 8;
 
-reg signed [15:0] s = 0;
+reg signed [15:0] s;
 wire end_step;
 reg [7:0] x;
 reg [31:0] b, y, tmp1;
-reg [3:0] state = IDLE;
+reg [4:0] state;
 
 
 reg   [7:0] mult1_a;
 reg   [7:0] mult1_b;
 wire [15:0] mult1_y;
-reg    mult1_rst = 0;
-reg  mult1_start = 0;
+reg    mult1_rst;
+reg  mult1_start;
 wire  mult1_busy;
 
 mul mul1_inst(
@@ -57,13 +58,19 @@ always @(posedge clk_i) begin
     if (rst_i) begin
         y_bo <= 0;
         busy_o <= 0;
+        s <= 0;
         mult1_rst <= 1;
-        state <= IDLE;
+        mult1_start <= 0;
+        state <= RST_END;
     end else begin
         case (state)
+         RST_END: 
+                begin
+                    mult1_rst <= 0;
+                    state <= IDLE;
+                end
             IDLE:
                 begin
-                    mult1_rst <=0;
                     if (start_i) begin
                         y_bo <= 0;
                         state <= WORK;
@@ -105,7 +112,7 @@ always @(posedge clk_i) begin
              WAIT_MUL2:
                  begin
                     mult1_start <= 0;
-                    if(~mult1_busy && ~mult1_start) begin               
+                    if(~mult1_busy && ~mult1_start) begin
                         b <= mult1_y + 1 << s;
                         s <= s - 3; 
                         state <= CHECK_X;

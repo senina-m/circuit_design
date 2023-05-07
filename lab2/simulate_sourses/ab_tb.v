@@ -36,7 +36,7 @@ initial begin
             in_a = 'd1;
             in_b = 'd64;
             start = 1;
-            #2
+            #3
             start = 0;
             count = count + 1;
          end else if (~out_busy && ~start && count == 1) begin

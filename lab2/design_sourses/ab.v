@@ -14,7 +14,8 @@ localparam IDLE = 0,
            WAIT_MUL = 2,
            RT3 = 3,
            WAIT_RT3 = 4,
-           WAIT_SUM = 5;
+           WAIT_SUM = 5,
+           RST_END = 6;
            
 reg [3:0] state = IDLE;
 reg [15:0] a_squared;
@@ -22,8 +23,8 @@ reg [15:0] a_squared;
 reg   [7:0] mult2_a;
 reg   [7:0] mult2_b;
 wire [15:0] mult2_y;
-reg    mult2_rst = 0;
-reg  mult2_start = 0;
+reg  mult2_rst;
+reg  mult2_start;
 wire  mult2_busy;
 
 mul mul2_inst(
@@ -64,18 +65,24 @@ always @(posedge clk_i) begin
     if (rst_i) begin
         y_bo <= 0;
         busy_o <= 0;
+        start_rt3 <= 0;
+        mult2_start <= 0;
+        
         rst_rt3 <= 1;
-        mult2_rst = 1;
-        state <= IDLE;
+        mult2_rst <= 1;
+        state <= RST_END;
     end else begin
         case (state)
+            RST_END: 
+                begin
+                    rst_rt3 <= 0;
+                    mult2_rst <= 0;
+                    state <= IDLE;
+                end
             IDLE:
                 begin
-                    rst_rt3 = 0;
-                    mult2_rst = 0;
                     if (start_i) begin
                         y_bo <= 0;
-//                        mult2_rst <= 1;
                         state <= MUL;
                         busy_o <= 1;
                     end
@@ -83,7 +90,6 @@ always @(posedge clk_i) begin
             MUL:
                 begin                    
                     //a*a = a_squared
-//                    mult2_rst <= 0;
                     mult2_a <= a_i;
                     mult2_b <= a_i;
                     mult2_start <= 1;
@@ -107,7 +113,6 @@ always @(posedge clk_i) begin
                 begin
                     start_rt3 <= 0;
                     if (~busy_rt3 && ~start_rt3) begin
-//                        y_bo <= a_squared + out_rt3;
                         sum_a <= a_squared; 
                         sum_b <= out_rt3;
                         state <= WAIT_SUM;
@@ -123,5 +128,3 @@ always @(posedge clk_i) begin
     end
 end
 endmodule
-
-
